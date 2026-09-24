@@ -6,8 +6,7 @@
 # This Dockerfile uses Node.js 24.13.0-slim and Nginxinc image with alpine3.22, which was the latest LTS version at the time of writing.
 # To ensure security and compatibility, regularly validate and update the NODE_VERSION ARG and NGINXINC_IMAGE_TAG to the latest LTS versions.
 
-ARG NODE_VERSION=24.13.0-slim
-ARG NGINXINC_IMAGE_TAG=alpine3.22
+ARG NODE_VERSION=26.10.0-alpine3.24
 
 FROM node:${NODE_VERSION} AS dependencies
 
@@ -15,21 +14,10 @@ FROM node:${NODE_VERSION} AS dependencies
 WORKDIR /app
 
 # Copy package-related files first to leverage Docker's caching mechanism
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
+COPY package.json package-lock.json* ./
 
 # Install project dependencies with frozen lockfile for reproducible builds
-RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/usr/local/share/.cache/yarn \
-    --mount=type=cache,target=/root/.local/share/pnpm/store \
-  if [ -f package-lock.json ]; then \
-    npm ci --no-audit --no-fund; \
-  elif [ -f yarn.lock ]; then \
-    corepack enable yarn && yarn install --frozen-lockfile --production=false; \
-  elif [ -f pnpm-lock.yaml ]; then \
-    corepack enable pnpm && pnpm install --frozen-lockfile; \
-  else \
-    echo "No lockfile found." && exit 1; \
-  fi
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 
 # ============================================
 # Stage 2: Build Next.js Application
@@ -48,49 +36,40 @@ COPY . .
 
 ENV NODE_ENV=production
 
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the build.
-# ENV NEXT_TELEMETRY_DISABLED=1
+# Next.js collects telemetry.
+# let's just stop that here...
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build Next.js application
-RUN --mount=type=cache,target=/app/.next/cache \
-  if [ -f package-lock.json ]; then \
-    npm run build; \
-  elif [ -f yarn.lock ]; then \
-    corepack enable yarn && yarn build; \
-  elif [ -f pnpm-lock.yaml ]; then \
-    corepack enable pnpm && pnpm build; \
-  else \
-    echo "No lockfile found." && exit 1; \
-  fi
+RUN --mount=type=cache,target=/app/.next/cache npm run build;
 
 # =========================================
-# Stage 3: Serve Static Files with Nginx
+# Stage 3: Serve Static Files with serve
 # =========================================
 
-FROM nginxinc/nginx-unprivileged:${NGINXINC_IMAGE_TAG} AS runner
+FROM node:${NODE_VERSION} AS runner
 
 # Set the working directory
 WORKDIR /app
 
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the run time.
-# ENV NEXT_TELEMETRY_DISABLED=1
+# Install serve globally (pinned version for reproducibility, update to the latest version as needed)
+# Cache npm global installs to speed up builds
+RUN --mount=type=cache,target=/root/.npm npm install -g serve@14.2.5
 
-# Copy custom Nginx config
-COPY nginx.conf /etc/nginx/nginx.conf
+# Set the port for serve (default is 3000)
+ENV PORT=3000
 
-# Copy the static build output from the build stage to Nginx's default HTML serving directory
-COPY --from=builder /app/out /usr/share/nginx/html
+# Copy the static build output from the build stage
+COPY --from=builder --chown=node:node /app/out ./out
 
-# Non-root user for security best practices
-USER nginx
+# Use the built-in non-root user for security best practices
+USER node
 
-# Expose port 8080 to allow HTTP traffic
-EXPOSE 8080
+# Expose port 3000 to allow HTTP traffic
+EXPOSE 3000
 
-# Start Nginx directly with custom config
-ENTRYPOINT ["nginx", "-c", "/etc/nginx/nginx.conf"]
-CMD ["-g", "daemon off;"]
+# Start serve to serve static files
+# -s: serve single-page application (SPA) mode
+# -l: listen on specified port
+# -n: no clipper (don't show file listing)
+CMD ["serve", "-s", "out", "-l", "3000", "-n"]
