@@ -39,6 +39,8 @@ ENV NODE_ENV=production
 # Next.js collects telemetry.
 # let's just stop that here...
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Build Next.js application
 RUN --mount=type=cache,target=/app/.next/cache npm run build;

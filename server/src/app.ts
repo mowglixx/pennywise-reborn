@@ -1,6 +1,6 @@
 // environment
 import 'dotenv/config'
-import { API_HOST, API_PORT } from './environment';
+import { API_PORT } from './environment';
 
 // express and middleware
 import express, { type Express, type Request, type Response } from 'express';
@@ -36,4 +36,4 @@ App.get('/api/health', (_: Request, res: Response) => {
 process.on("SIGTERM", serverGracefulShutdown);
 process.on("SIGINT", serverGracefulShutdown);
 
-App.listen(API_PORT, API_HOST, logServerStart);
+App.listen(API_PORT,logServerStart);

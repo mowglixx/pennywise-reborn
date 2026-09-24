@@ -8,14 +8,20 @@ ENV NODE_ENV $NODE_ENV
 WORKDIR /app
 COPY package.json /app/package.json
 COPY package-lock.json /app/package-lock.json
-RUN npm ci
+RUN npm i
 
-FROM node:${NODE_VERSION} as builder
+FROM node:${NODE_VERSION} AS builder
+ENV NODE_ENV $NODE_ENV
+
 WORKDIR /app
-COPY --from=dependencies /app/node_modules ./node_modules
+COPY --from=dependencies /app .
 COPY ./src /app/src
 
-FROM builder as prod
+FROM builder AS prod
+ENV NODE_ENV $NODE_ENV
+
+WORKDIR /app
+COPY --from=builder /app .
 
 USER node
 EXPOSE 9000

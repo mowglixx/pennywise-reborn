@@ -21,9 +21,11 @@ services:
     #   - 5432:5432
   api:
     container_name: pennywise-api-server
-    build: ./server/Dockerfile
+    build: ./server
     environment:
-      - NODE_ENV=production
+      - API_EXTERNAL_URL=https://money.example.com/api
+      - API_SERVER_PORT=9000
+      - FRONTEND_URLS=["https://money.example.com"]
       - DB_URL="postgresql://postgres:postgrespassword@pennywise-api-db:5432/pennywise"
     depends_on:
       - db
@@ -32,13 +34,13 @@ services:
 
   client:
     container_name: pennywise-api-client
-    build: ./client/Dockerfile
+    build: 
+      context: ./client
     depends_on:
       - api
-    environment:
-      - NEXT_PUBLIC_API_URL=http://pennywise-api-server:9000
     volumes:
       - pennywise-client-data:/app
+
     
 
 volumes:

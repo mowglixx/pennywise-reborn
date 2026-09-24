@@ -14,7 +14,9 @@ export default function Page() {
           <p>You may now add components and start building.</p>
           <p>We&apos;ve already added the button component for you.</p>
           <Button className="mt-2" onClick={()=>{
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api`).then(res => res.json()).then(setStatus)
+            fetch(`/api`)
+            .then(res => res.json())
+            .then(setStatus)
           }}>Refresh Server status</Button>
         </div>
         <div className="font-mono text-xs text-muted-foreground">
