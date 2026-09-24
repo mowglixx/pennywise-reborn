@@ -1,0 +1,10 @@
+# exclude node files
+node_modules
+
+# exclude node build
+build
+
+.env
+.env*
+node_modules/
+dist/
