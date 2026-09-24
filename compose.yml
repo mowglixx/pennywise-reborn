@@ -7,15 +7,6 @@
 name: pennywise-api
 
 services:
-  api:
-    container_name: pennywise-api-server
-    build: ./server/Dockerfile
-    environment:
-      - NODE_ENV=production
-      - DB_URL="postgresql://postgres:postgrespassword@pennywise-api-db:5432/pennywise"
-    volumes:
-      - app-data:/app
-
   db:
     container_name: pennywise-api-db
     image: postgres:17-alpine
@@ -28,11 +19,29 @@ services:
     # Commented out becuase the service communicates over the docker internal network
     # ports: 
     #   - 5432:5432
+  api:
+    container_name: pennywise-api-server
+    build: ./server/Dockerfile
+    environment:
+      - NODE_ENV=production
+      - DB_URL="postgresql://postgres:postgrespassword@pennywise-api-db:5432/pennywise"
+    depends_on:
+      - db
+    volumes:
+      - pennywise-api-data:/app
 
-  app:
-    container_name: pennywise-api-frontend
-    # tbc 
+  client:
+    container_name: pennywise-api-client
+    build: ./client/Dockerfile
+    depends_on:
+      - api
+    environment:
+      - API_URL=http://pennywise-api-server:9000
+    volumes:
+      - pennywise-client-data:/app
+    
 
 volumes:
+  pennywise-client-data:
+  pennywise-api-data:
   postgres_data:
-  app-data:
