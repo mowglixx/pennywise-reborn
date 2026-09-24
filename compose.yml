@@ -1,0 +1,38 @@
+#
+# This compose file is only really used as a
+# standalone API instance, please run the full
+# container stack in the root repository for
+# the full service including the frontend
+#
+name: pennywise-api
+
+services:
+  api:
+    container_name: pennywise-api-server
+    build: ./server/Dockerfile
+    environment:
+      - NODE_ENV=production
+      - DB_URL="postgresql://postgres:postgrespassword@pennywise-api-db:5432/pennywise"
+    volumes:
+      - app-data:/app
+
+  db:
+    container_name: pennywise-api-db
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: pennywise
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Commented out becuase the service communicates over the docker internal network
+    # ports: 
+    #   - 5432:5432
+
+  app:
+    container_name: pennywise-api-frontend
+    # tbc 
+
+volumes:
+  postgres_data:
+  app-data:
